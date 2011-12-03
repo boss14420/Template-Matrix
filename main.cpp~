@@ -1,0 +1,122 @@
+/*
+ * =====================================================================================
+ *
+ *       Filename:  main.cpp
+ *
+ *    Description:  
+ *
+ *        Version:  1.0
+ *        Created:  11/08/2011 08:57:10 PM
+ *       Revision:  none
+ *       Compiler:  gcc
+ *
+ *         Author:  BOSS14420 (boss14420), boss14420@gmail.com
+ *        Company:  
+ *
+ * =====================================================================================
+ */
+
+#include <iostream>
+#include <fstream>
+#include "matrix.h"
+#include <cstdlib>
+#include <cstring>
+#include <sys/time.h>
+//#include <ctime>
+//#include <boost/timer.hpp>
+
+int main(int argc, char *argv[]) {
+
+    unsigned MODE = 0;
+    if(argc >= 2)
+        MODE = std::atoi(argv[1]);
+
+    Matrix<int> A, B, C;
+//    boost::timer t;
+    double time;
+    timeval begin, end;
+    switch(MODE & 2) {
+        case 0: // Generate Random Matrix
+        {
+
+            unsigned MAXSIZE = 10;
+
+            if(argc >= 3)
+                MAXSIZE = std::atoi(argv[2]);
+            if(argc >= 4)
+                 Matrix<int>::threads = std::atoi(argv[3]);
+            if(argc == 5 && MODE == 0)
+                 Matrix<int>::strassenLowerBound = std::atoi(argv[4]);
+
+            std::vector<std::vector<int> > vA, vB;
+            vA.assign(MAXSIZE, std::vector<int>(MAXSIZE,0));
+            vB.assign(MAXSIZE, std::vector<int>(MAXSIZE,0));
+
+            std::srand(std::time(0));
+            for(unsigned i = 0; i < MAXSIZE; ++i)
+                for(unsigned j =0; j < MAXSIZE; ++j) {
+                    vA[i][j] = std::rand() % 50 - 25;
+                    vB[i][j] = std::rand() % 50 - 25;
+                }
+            A = Matrix<int>(vA);
+            B = Matrix<int>(vB);
+
+
+            if(MAXSIZE < 10)
+                std::cout << "A = " << A << std::endl << "B = " << B << std::endl;
+
+            C = A;
+//            t.restart();
+            gettimeofday(&begin, NULL);
+            C *= B;
+            gettimeofday(&end, NULL);
+//            time = t.elapsed();
+
+            time = end.tv_sec - begin.tv_sec + 
+                (end.tv_usec - begin.tv_usec) / 1000000.0;
+            
+            std::cout << "Elapsed time: " << time << "s" << std::endl;
+
+            if(1 == MODE) { // Write to file
+                std::ofstream ofs;
+
+                ofs.open("Matrix1.mat", std::ios::trunc | std::ios::out);
+                A.writeToFile(ofs);
+                ofs.close();
+
+                ofs.open("Matrix2.mat", std::ios::trunc | std::ios::out);
+                B.writeToFile(ofs);
+                ofs.close();
+
+                ofs.open("Result_Strassen.mat", std::ios::trunc | std::ios::out);
+                C.writeToFile(ofs);
+                ofs.close();
+
+            }
+        }
+            break;
+
+        case 2: // Read from file
+            
+            std::ifstream ifs;
+
+            ifs.open("Matrix1.mat", std::ios::in);
+            A.readFromFile(ifs);
+            ifs.close();
+
+            ifs.open("Matrix2.mat", std::ios::in);
+            B.readFromFile(ifs);
+            ifs.close();
+
+            Matrix<int>::strassenLowerBound = 100000;
+            A*=B;
+
+            std::ofstream ofs2("Result_Normal.mat", std::ios::trunc | std::ios::out);
+            A.writeToFile(ofs2);
+            ofs2.close();
+
+            break;
+    }
+
+    return 0;
+}
